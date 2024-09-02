@@ -57,7 +57,7 @@ Write-Output "------------------------------------------------------------------
 Write-Output "> Downloading Win11Debloat..."
 
 # Download latest version of Win11Debloat from github as zip archive
-Invoke-WebRequest http://github.com/raphire/win11debloat/archive/master.zip -OutFile "$env:TEMP/win11debloat-temp.zip"
+Invoke-WebRequest http://github.com/TrevorWget/win11debloat/archive/master.zip -OutFile "$env:TEMP/win11debloat-temp.zip"
 
 # Remove old script folder if it exists
 if (Test-Path "$env:TEMP/Win11Debloat") {

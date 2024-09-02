@@ -234,7 +234,7 @@ Download & run the script automatically via PowerShell.
 2. Copy and paste the code below into PowerShell, press enter to run the script:
 
 ```PowerShell
-& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/TrevorWGet/Win11Debloat/master/Get.ps1")))
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/TrevorWget/Win11Debloat/master/Get.ps1")))
 ```
 
 3. Wait for the script to automatically download Win11Debloat.
@@ -244,7 +244,7 @@ Download & run the script automatically via PowerShell.
 This method supports [parameters](#parameters). To use parameters simply run the script as explained above, but add the parameters at the end with spaces in between. Example:
 
 ```PowerShell
-& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/TrevorWGet/Win11Debloat/master/Get.ps1"))) -RunDefaults -Silent
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/TrevorWget/Win11Debloat/master/Get.ps1"))) -RunDefaults -Silent
 ```
 
 ### Traditional method

@@ -6,10 +6,6 @@ You can pick and choose exactly which modifications you want the script to make,
 
 ![Win11Debloat Menu](/Assets/menu.png)
 
-#### Did this script help you? Please consider buying me a cup of coffee to support my work
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M5C6UPC)
-
 ## Features
 
 > [!Tip]
@@ -238,7 +234,7 @@ Download & run the script automatically via PowerShell.
 2. Copy and paste the code below into PowerShell, press enter to run the script:
 
 ```PowerShell
-& ([scriptblock]::Create((irm "https://win11debloat.raphi.re/")))
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/TrevorWGet/Win11Debloat/master/Get.ps1")))
 ```
 
 3. Wait for the script to automatically download Win11Debloat.
@@ -248,14 +244,14 @@ Download & run the script automatically via PowerShell.
 This method supports [parameters](#parameters). To use parameters simply run the script as explained above, but add the parameters at the end with spaces in between. Example:
 
 ```PowerShell
-& ([scriptblock]::Create((irm "https://win11debloat.raphi.re/"))) -RunDefaults -Silent
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/TrevorWGet/Win11Debloat/master/Get.ps1"))) -RunDefaults -Silent
 ```
 
 ### Traditional method
 
 Manually download & run the script.
 
-1. [Download the latest version of the script](https://github.com/Raphire/Win11Debloat/archive/master.zip), and extract the .ZIP file to your desired location.
+1. [Download the latest version of the script](https://github.com/TrevorWget/Win11Debloat/archive/master.zip), and extract the .ZIP file to your desired location.
 2. Navigate to the Win11Debloat folder
 3. Double click the `Run.bat` file to start the script. NOTE: If the console window immediately closes and nothing happens, try the advanced method below.
 4. Accept the Windows UAC prompt to run the script as administrator, this is required for the script to function.
@@ -266,7 +262,7 @@ Manually download & run the script.
 
 Manually download the script & run the script via PowerShell. Only recommended for advanced users.
 
-1. [Download the latest version of the script](https://github.com/Raphire/Win11Debloat/archive/master.zip), and extract the .ZIP file to your desired location.
+1. [Download the latest version of the script](https://github.com/TrevorWget/Win11Debloat/archive/master.zip), and extract the .ZIP file to your desired location.
 2. Open PowerShell as an administrator.
 3. Enable PowerShell execution by entering the following command:
 

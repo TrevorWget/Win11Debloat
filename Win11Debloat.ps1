@@ -1380,28 +1380,3 @@ else {
 
     AwaitKeyToExit
 }
-
-# Define the folder path and file name
-$logFolderPath = "C:\WS1ScriptLogs"
-$logFileName = "Win11FixerLog.txt"
-$logFilePath = Join-Path $logFolderPath $logFileName
-
-# Check if the folder exists, if not, create it
-if (-not (Test-Path $logFolderPath)) {
-    New-Item -Path $logFolderPath -ItemType Directory -Force
-}
-
-# Create the log file if it doesn't exist
-if (-not (Test-Path $logFilePath)) {
-    New-Item -Path $logFilePath -ItemType File -Force
-}
-
-# Write the current time and message to the log file
-$currentTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-$logMessage = "$currentTime - Win11 Fixer Finished Running"
-
-# Append the log message to the file
-Add-Content -Path $logFilePath -Value $logMessage
-
-# Output a message to confirm the log file update
-Write-Host "Log file updated with message: $logMessage"

@@ -75,6 +75,14 @@ function ShowAppSelectionForm {
     # saveButton eventHandler
     $handler_saveButton_Click= 
     {
+        if ($selectionBox.CheckedItems -contains "Microsoft.WindowsStore" -and -not $Silent) {
+            $warningSelection = [System.Windows.Forms.Messagebox]::Show('Are you sure you wish to uninstall the Microsoft Store? This app cannot easily be reinstalled.', 'Are you sure?', 'YesNo', 'Warning')
+        
+            if ($warningSelection -eq 'No') {
+                return
+            }
+        }
+
         $global:SelectedApps = $selectionBox.CheckedItems
 
         # Create file that stores selected apps if it doesn't exist
@@ -84,6 +92,7 @@ function ShowAppSelectionForm {
 
         Set-Content -Path "$PSScriptRoot/CustomAppsList" -Value $global:SelectedApps
 
+        $form.DialogResult = [System.Windows.Forms.DialogResult]::OK
         $form.Close()
     }
 
@@ -157,7 +166,7 @@ function ShowAppSelectionForm {
 
             if (-not $jobDone) {
                 # Show error that the script was unable to get list of apps from winget
-                [System.Windows.MessageBox]::Show('Unable to load list of installed apps via winget, some apps may not be displayed in the list.','Error','Ok','Error')
+                [System.Windows.MessageBox]::Show('Unable to load list of installed apps via winget, some apps may not be displayed in the list.', 'Error', 'Ok', 'Error')
             }
             else {
                 # Add output of job (list of apps) to $listOfApps
@@ -219,7 +228,6 @@ function ShowAppSelectionForm {
 
     $button1.TabIndex = 4
     $button1.Name = "saveButton"
-    $button1.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $button1.UseVisualStyleBackColor = $True
     $button1.Text = "Confirm"
     $button1.Location = New-Object System.Drawing.Point(27,472)
@@ -359,15 +367,41 @@ function RemoveApps {
             # Remove installed app for all existing users
             if ($WinVersion -ge 22000){
                 # Windows 11 build 22000 or later
-                Get-AppxPackage -Name $app -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction Continue
+                try {
+                    Get-AppxPackage -Name $app -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction Continue
+                }
+                catch {
+                    Write-Host "Unable to remove $app for all users" -ForegroundColor Yellow
+                    Write-Host $psitem.Exception.StackTrace -ForegroundColor Gray
+                }
             }
             else {
                 # Windows 10
-                Get-AppxPackage -Name $app -PackageTypeFilter Main, Bundle, Resource -AllUsers | Remove-AppxPackage -AllUsers
+                try {
+                    Get-AppxPackage -Name $app | Remove-AppxPackage -ErrorAction SilentlyContinue
+                }
+                catch {
+                    Write-Host "Unable to remove $app for current user" -ForegroundColor Yellow
+                    Write-Host $psitem.Exception.StackTrace -ForegroundColor Gray
+                }
+                
+                try {
+                    Get-AppxPackage -Name $app -PackageTypeFilter Main, Bundle, Resource -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+                }
+                catch {
+                    Write-Host "Unable to remove $app for all users" -ForegroundColor Yellow
+                    Write-Host $psitem.Exception.StackTrace -ForegroundColor Gray
+                }
             }
 
             # Remove provisioned app from OS image, so the app won't be installed for any new users
-            Get-AppxProvisionedPackage -Online | Where-Object { $_.PackageName -like $app } | ForEach-Object { Remove-ProvisionedAppxPackage -Online -AllUsers -PackageName $_.PackageName }
+            try {
+                Get-AppxProvisionedPackage -Online | Where-Object { $_.PackageName -like $app } | ForEach-Object { Remove-ProvisionedAppxPackage -Online -AllUsers -PackageName $_.PackageName }
+            }
+            catch {
+                Write-Host "Unable to remove $app from windows image" -ForegroundColor Yellow
+                Write-Host $psitem.Exception.StackTrace -ForegroundColor Gray
+            }
         }
     }
             

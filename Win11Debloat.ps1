@@ -614,10 +614,10 @@ function ReplaceStartMenu {
     }
 
     # Check if bin file exists, return early if it doesn't
-    if (-not (Test-Path $startMenuBinFile)) {
-        Write-Host "Error: Unable to clear start menu for user $userName, start2.bin file could not found" -ForegroundColor Red
-        return
-    }
+    #if (-not (Test-Path $startMenuBinFile)) {
+    #    Write-Host "Error: Unable to clear start menu for user $userName, start2.bin file could not found" -ForegroundColor Red
+    #    return
+    #}
 
     $backupBinFile = $startMenuBinFile + ".bak"
 

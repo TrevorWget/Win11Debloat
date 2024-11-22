@@ -45,7 +45,7 @@ param (
     [switch]$DisableShare, [switch]$HideShare
 )
 
-# $ErrorActionPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'SilentlyContinue'
 
 # Show error if current powershell environment does not have LanguageMode set to FullLanguage 
 if ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {

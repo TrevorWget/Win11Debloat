@@ -103,5 +103,4 @@ if (Test-Path "$env:TEMP/Win11Debloat/Win11Debloat-master") {
     Get-ChildItem -Path "$env:TEMP/Win11Debloat/Win11Debloat-master" -Exclude CustomAppsList,SavedSettings | Remove-Item -Recurse -Force
 }
 
-Write-Output "Success..."
-Exit 0
+Write-Output ""

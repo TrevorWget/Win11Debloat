@@ -1,3 +1,5 @@
+$ErrorActionPreference = 'SilentlyContinue'
+
 param (
     [switch]$Silent,
     [switch]$Verbose,

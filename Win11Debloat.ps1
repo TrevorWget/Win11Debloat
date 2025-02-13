@@ -6,6 +6,7 @@ param (
     [switch]$Sysprep,
     [switch]$RunAppConfigurator,
     [switch]$RunDefaults, [switch]$RunWin11Defaults,
+    [switch]$RunSavedSettings,
     [switch]$RemoveApps, 
     [switch]$RemoveAppsCustom,
     [switch]$RemoveGamingApps,
@@ -16,6 +17,7 @@ param (
     [switch]$DisableDVR,
     [switch]$DisableTelemetry,
     [switch]$DisableBingSearches, [switch]$DisableBing,
+    [switch]$DisableDesktopSpotlight,
     [switch]$DisableLockscrTips, [switch]$DisableLockscreenTips,
     [switch]$DisableWindowsSuggestions, [switch]$DisableSuggestions,
     [switch]$ShowHiddenFolders,
@@ -24,6 +26,7 @@ param (
     [switch]$TaskbarAlignLeft,
     [switch]$HideSearchTb, [switch]$ShowSearchIconTb, [switch]$ShowSearchLabelTb, [switch]$ShowSearchBoxTb,
     [switch]$HideTaskview,
+    [switch]$DisableStartRecommended,
     [switch]$DisableCopilot,
     [switch]$DisableRecall,
     [switch]$DisableWidgets,
@@ -353,7 +356,7 @@ function RemoveApps {
                 # Uninstall app via winget
                 Strip-Progress -ScriptBlock { winget uninstall --accept-source-agreements --disable-interactivity --id $app } | Tee-Object -Variable wingetOutput 
 
-                If (($app -eq "Microsoft.Edge") -and (Select-String -InputObject $wingetOutput -Pattern "93")) {
+                If (($app -eq "Microsoft.Edge") -and (Select-String -InputObject $wingetOutput -Pattern "Uninstall failed with exit code")) {
                     Write-Host "Unable to uninstall Microsoft Edge via Winget" -ForegroundColor Red
                     Write-Output ""
 
@@ -529,7 +532,7 @@ function RegImport {
         reg import "$PSScriptRoot\Regfiles\$path"  
     }
     else {
-        $defaultUserPath = $env:USERPROFILE.Replace($env:USERNAME, 'Default\NTUSER.DAT')
+        $defaultUserPath = $env:USERPROFILE -Replace ('\\' + $env:USERNAME + '$'), '\Default\NTUSER.DAT'
         
         reg load "HKU\Default" $defaultUserPath | Out-Null
         reg import "$PSScriptRoot\Regfiles\Sysprep\$path"  
@@ -542,12 +545,15 @@ function RegImport {
 
 # Restart the Windows Explorer process
 function RestartExplorer {
+    if ($global:Params.ContainsKey("Sysprep")) {
+        return
+    }
+
     Write-Output "> Restarting Windows Explorer process to apply all changes... (This may cause some flickering)"
 
-    # Only restart if the powershell process matches the OS architecture
+    # Only restart if the powershell process matches the OS architecture.
     # Restarting explorer from a 32bit Powershell window will fail on a 64bit OS
-    if ([Environment]::Is64BitProcess -eq [Environment]::Is64BitOperatingSystem)
-    {
+    if ([Environment]::Is64BitProcess -eq [Environment]::Is64BitOperatingSystem) {
         Stop-Process -processName: Explorer -Force
     }
     else {
@@ -573,7 +579,7 @@ function ReplaceStartMenuForAllUsers {
     }
 
     # Get path to start menu file for all users
-    $userPathString = $env:USERPROFILE.Replace($env:USERNAME, "*\AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState")
+    $userPathString = $env:USERPROFILE -Replace ('\\' + $env:USERNAME + '$'), "\*\AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState"
     $usersStartMenuPaths = get-childitem -path $userPathString
 
     # Go through all users and replace the start menu file
@@ -582,7 +588,7 @@ function ReplaceStartMenuForAllUsers {
     }
 
     # Also replace the start menu file for the default user profile
-    $defaultStartMenuPath = $env:USERPROFILE.Replace($env:USERNAME, 'Default\AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState')
+    $defaultStartMenuPath = $env:USERPROFILE -Replace ('\\' + $env:USERNAME + '$'), '\Default\AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState'
 
     # Create folder if it doesn't exist
     if (-not(Test-Path $defaultStartMenuPath)) {
@@ -605,7 +611,7 @@ function ReplaceStartMenu {
         $startMenuTemplate = "$PSScriptRoot/Start/start2.bin"
     )
 
-    $userName = $startMenuBinFile.Split("\")[2]
+    $userName = $env:USERNAME
 
     # Check if template bin file exists, return early if it doesn't
     if (-not (Test-Path $startMenuTemplate)) {
@@ -755,7 +761,7 @@ else {
 }
 
 if ($global:Params.ContainsKey("Sysprep")) {
-    $defaultUserPath = $env:USERPROFILE.Replace($env:USERNAME, 'Default\NTUSER.DAT')
+    $defaultUserPath = $env:USERPROFILE -Replace ('\\' + $env:USERNAME + '$'), '\Default\NTUSER.DAT'
 
     # Exit script if default user directory or NTUSER.DAT file cannot be found
     if (-not (Test-Path "$defaultUserPath")) {
@@ -791,14 +797,23 @@ if ($RunAppConfigurator) {
     }
 
     AwaitKeyToExit
-
     Exit
 }
 
 # Change script execution based on provided parameters or user input
-if ((-not $global:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or ($SPParamCount -eq $global:Params.Count)) {
+if ((-not $global:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or $RunSavedSettings -or ($SPParamCount -eq $global:Params.Count)) {
     if ($RunDefaults -or $RunWin11Defaults) {
         $Mode = '1'
+    }
+    elseif ($RunSavedSettings) {
+        if(-not (Test-Path "$PSScriptRoot/SavedSettings")) {
+            PrintHeader 'Custom Mode'
+            Write-Host "Error: No saved settings found, no changes were made" -ForegroundColor Red
+            AwaitKeyToExit
+            Exit
+        }
+
+        $Mode = '4'
     }
     else {
         # Show menu and wait for user input, loops until valid input is provided
@@ -807,8 +822,8 @@ if ((-not $global:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or ($SPP
 
             PrintHeader 'Menu'
 
-            Write-Output "(1) Default Mode: Apply the default settings"
-            Write-Output "(2) Custom Mode: Modify the script to your needs"
+            Write-Output "(1) Default mode: Apply the default settings"
+            Write-Output "(2) Custom mode: Modify the script to your needs"
             Write-Output "(3) App removal mode: Select & remove apps, without making other changes"
 
             # Only show this option if SavedSettings file exists
@@ -828,7 +843,7 @@ if ((-not $global:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or ($SPP
             # Show information based on user input, Suppress user prompt if Silent parameter was passed
             if ($Mode -eq '0') {
                 # Get & print script information from file
-                PrintFromFile "$PSScriptRoot/Menus/Info"
+                PrintFromFile "$PSScriptRoot/Assets/Menus/Info"
 
                 Write-Output ""
                 Write-Output "Press any key to go back..."
@@ -847,7 +862,7 @@ if ((-not $global:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or ($SPP
         '1' { 
             # Print the default settings & require userconfirmation, unless Silent parameter was passed
             if (-not $Silent) {
-                PrintFromFile "$PSScriptRoot/Menus/DefaultSettings"
+                PrintFromFile "$PSScriptRoot/Assets/Menus/DefaultSettings"
 
                 Write-Output ""
                 Write-Output "Press enter to execute the script or press CTRL+C to quit..."
@@ -930,37 +945,6 @@ if ((-not $global:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or ($SPP
                 }
             }
 
-            # Only show this option for Windows 11 users running build 22621 or later
-            if ($WinVersion -ge 22621){
-                Write-Output ""
-
-                if ($global:Params.ContainsKey("Sysprep")) {
-                    if ($( Read-Host -Prompt "Remove all pinned apps from the start menu for all existing and new users? (y/n)" ) -eq 'y') {
-                        AddParameter 'ClearStartAllUsers' 'Remove all pinned apps from the start menu for existing and new users'
-                    }
-                }
-                else {
-                    Do {
-                        Write-Host "Options:" -ForegroundColor Yellow
-                        Write-Host " (n) Don't remove any pinned apps from the start menu" -ForegroundColor Yellow
-                        Write-Host " (1) Remove all pinned apps from the start menu for this user only ($env:USERNAME)" -ForegroundColor Yellow
-                        Write-Host " (2) Remove all pinned apps from the start menu for all existing and new users"  -ForegroundColor Yellow
-                        $ClearStartInput = Read-Host "Remove all pinned apps from the start menu? (n/1/2)" 
-                    }
-                    while ($ClearStartInput -ne 'n' -and $ClearStartInput -ne '0' -and $ClearStartInput -ne '1' -and $ClearStartInput -ne '2') 
-    
-                    # Select correct option based on user input
-                    switch ($ClearStartInput) {
-                        '1' {
-                            AddParameter 'ClearStart' "Remove all pinned apps from the start menu for this user only"
-                        }
-                        '2' {
-                            AddParameter 'ClearStartAllUsers' "Remove all pinned apps from the start menu for all existing and new users"
-                        }
-                    }
-                }
-            }
-
             Write-Output ""
 
             if ($( Read-Host -Prompt "Disable telemetry, diagnostic data, activity history, app-launch tracking and targeted ads? (y/n)" ) -eq 'y') {
@@ -969,8 +953,9 @@ if ((-not $global:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or ($SPP
 
             Write-Output ""
 
-            if ($( Read-Host -Prompt "Disable tips, tricks, suggestions and ads in start, settings, notifications, explorer and lockscreen? (y/n)" ) -eq 'y') {
+            if ($( Read-Host -Prompt "Disable tips, tricks, suggestions and ads in start, settings, notifications, explorer, desktop and lockscreen? (y/n)" ) -eq 'y') {
                 AddParameter 'DisableSuggestions' 'Disable tips, tricks, suggestions and ads in start, settings, notifications and File Explorer'
+                AddParameter 'DisableDesktopSpotlight' 'Disable the Windows Spotlight desktop background option.'
                 AddParameter 'DisableLockscreenTips' 'Disable tips & tricks on the lockscreen'
             }
 
@@ -984,7 +969,7 @@ if ((-not $global:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or ($SPP
             if ($WinVersion -ge 22621){
                 Write-Output ""
 
-                if ($( Read-Host -Prompt "Disable and remove Windows Copilot? This applies to all users (y/n)" ) -eq 'y') {
+                if ($( Read-Host -Prompt "Disable & remove Windows Copilot? This applies to all users (y/n)" ) -eq 'y') {
                     AddParameter 'DisableCopilot' 'Disable and remove Windows Copilot'
                 }
 
@@ -1001,6 +986,47 @@ if ((-not $global:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or ($SPP
 
                 if ($( Read-Host -Prompt "Restore the old Windows 10 style context menu? (y/n)" ) -eq 'y') {
                     AddParameter 'RevertContextMenu' 'Restore the old Windows 10 style context menu'
+                }
+            }
+
+            # Only show this option for Windows 11 users running build 22621 or later
+            if ($WinVersion -ge 22621){
+                Write-Output ""
+
+                if ($( Read-Host -Prompt "Do you want to make any changes to the start menu? (y/n)" ) -eq 'y') {
+                    Write-Output ""
+
+                    if ($global:Params.ContainsKey("Sysprep")) {
+                        if ($( Read-Host -Prompt "Remove all pinned apps from the start menu for all existing and new users? (y/n)" ) -eq 'y') {
+                            AddParameter 'ClearStartAllUsers' 'Remove all pinned apps from the start menu for existing and new users'
+                        }
+                    }
+                    else {
+                        Do {
+                            Write-Host "   Options:" -ForegroundColor Yellow
+                            Write-Host "    (n) Don't remove any pinned apps from the start menu" -ForegroundColor Yellow
+                            Write-Host "    (1) Remove all pinned apps from the start menu for this user only ($env:USERNAME)" -ForegroundColor Yellow
+                            Write-Host "    (2) Remove all pinned apps from the start menu for all existing and new users"  -ForegroundColor Yellow
+                            $ClearStartInput = Read-Host "   Remove all pinned apps from the start menu? (n/1/2)" 
+                        }
+                        while ($ClearStartInput -ne 'n' -and $ClearStartInput -ne '0' -and $ClearStartInput -ne '1' -and $ClearStartInput -ne '2') 
+        
+                        # Select correct option based on user input
+                        switch ($ClearStartInput) {
+                            '1' {
+                                AddParameter 'ClearStart' "Remove all pinned apps from the start menu for this user only"
+                            }
+                            '2' {
+                                AddParameter 'ClearStartAllUsers' "Remove all pinned apps from the start menu for all existing and new users"
+                            }
+                        }
+                    }
+
+                    Write-Output ""
+
+                    if ($( Read-Host -Prompt "   Disable & hide the recommended section in the start menu? This applies to all users (y/n)" ) -eq 'y') {
+                        AddParameter 'DisableStartRecommended' 'Disable & hide the recommended section in the start menu.'
+                    }
                 }
             }
 
@@ -1221,40 +1247,40 @@ if ((-not $global:Params.Count) -or $RunDefaults -or $RunWin11Defaults -or ($SPP
 
         # Load custom options selection from the "SavedSettings" file
         '4' {
-            if (-not $Silent) {
-                PrintHeader 'Custom Mode'
-                Write-Output "Win11Debloat will make the following changes:"
+            PrintHeader 'Custom Mode'
+            Write-Output "Win11Debloat will make the following changes:"
 
-                # Get & print default settings info from file
-                Foreach ($line in (Get-Content -Path "$PSScriptRoot/SavedSettings" )) { 
-                    # Remove any spaces before and after the line
-                    $line = $line.Trim()
-                
-                    # Check if the line contains a comment
-                    if (-not ($line.IndexOf('#') -eq -1)) {
-                        $parameterName = $line.Substring(0, $line.IndexOf('#'))
+            # Get & print default settings info from file
+            Foreach ($line in (Get-Content -Path "$PSScriptRoot/SavedSettings" )) { 
+                # Remove any spaces before and after the line
+                $line = $line.Trim()
+            
+                # Check if the line contains a comment
+                if (-not ($line.IndexOf('#') -eq -1)) {
+                    $parameterName = $line.Substring(0, $line.IndexOf('#'))
 
-                        # Print parameter description and add parameter to Params list
-                        if ($parameterName -eq "RemoveAppsCustom") {
-                            if (-not (Test-Path "$PSScriptRoot/CustomAppsList")) {
-                                # Apps file does not exist, skip
-                                continue
-                            }
-                            
-                            $appsList = ReadAppslistFromFile "$PSScriptRoot/CustomAppsList"
-                            Write-Output "- Remove $($appsList.Count) apps:"
-                            Write-Host $appsList -ForegroundColor DarkGray
+                    # Print parameter description and add parameter to Params list
+                    if ($parameterName -eq "RemoveAppsCustom") {
+                        if (-not (Test-Path "$PSScriptRoot/CustomAppsList")) {
+                            # Apps file does not exist, skip
+                            continue
                         }
-                        else {
-                            Write-Output $line.Substring(($line.IndexOf('#') + 1), ($line.Length - $line.IndexOf('#') - 1))
-                        }
+                        
+                        $appsList = ReadAppslistFromFile "$PSScriptRoot/CustomAppsList"
+                        Write-Output "- Remove $($appsList.Count) apps:"
+                        Write-Host $appsList -ForegroundColor DarkGray
+                    }
+                    else {
+                        Write-Output $line.Substring(($line.IndexOf('#') + 1), ($line.Length - $line.IndexOf('#') - 1))
+                    }
 
-                        if (-not $global:Params.ContainsKey($parameterName)){
-                            $global:Params.Add($parameterName, $true)
-                        }
+                    if (-not $global:Params.ContainsKey($parameterName)){
+                        $global:Params.Add($parameterName, $true)
                     }
                 }
+            }
 
+            if (-not $Silent) {
                 Write-Output ""
                 Write-Output ""
                 Write-Output "Press enter to execute the script or press CTRL+C to quit..."
@@ -1353,6 +1379,10 @@ else {
             RemoveApps $appsList
             continue
         }
+        'DisableDesktopSpotlight' {
+            RegImport "> Disabling the 'Windows Spotlight' desktop background option..." "Disable_Desktop_Spotlight.reg"
+            continue
+        }
         {$_ -in "DisableLockscrTips", "DisableLockscreenTips"} {
             RegImport "> Disabling tips & tricks on the lockscreen..." "Disable_Lockscreen_Tips.reg"
             continue
@@ -1388,6 +1418,10 @@ else {
         }
         'HideTaskview' {
             RegImport "> Hiding the taskview button from the taskbar..." "Hide_Taskview_Taskbar.reg"
+            continue
+        }
+        'DisableStartRecommended' {
+            RegImport "> Disabling and hiding the start menu recommended section..." "Disable_Start_Recommended.reg"
             continue
         }
         'DisableCopilot' {

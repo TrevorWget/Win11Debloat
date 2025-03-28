@@ -2,6 +2,7 @@ param (
     [switch]$Silent,
     [switch]$Verbose,
     [switch]$Sysprep,
+    [string]$User,
     [switch]$RunAppConfigurator,
     [switch]$RunDefaults, [switch]$RunWin11Defaults,
     [switch]$RunSavedSettings,
@@ -27,13 +28,12 @@ param (
     [switch]$DisableStartRecommended,
     [switch]$DisableCopilot,
     [switch]$DisableRecall,
-    [switch]$DisableWidgets,
-    [switch]$HideWidgets,
-    [switch]$DisableChat,
-    [switch]$HideChat,
+    [switch]$DisableWidgets, [switch]$HideWidgets,
+    [switch]$DisableChat, [switch]$HideChat,
     [switch]$ClearStart,
     [switch]$ClearStartAllUsers,
     [switch]$RevertContextMenu,
+    [switch]$DisableMouseAcceleration,
     [switch]$HideHome,
     [switch]$HideGallery,
     [switch]$ExplorerToHome,
@@ -84,7 +84,14 @@ Expand-Archive "$env:TEMP/win11debloat-temp.zip" "$env:TEMP/Win11Debloat"
 Remove-Item "$env:TEMP/win11debloat-temp.zip"
 
 # Make list of arguments to pass on to the script
-$arguments = $($PSBoundParameters.GetEnumerator() | ForEach-Object {"-$($_.Key)"})
+$arguments = $($PSBoundParameters.GetEnumerator() | ForEach-Object {
+    if ($_.Value -eq $true) {
+        "-$($_.Key)"
+    } 
+    else {
+         "-$($_.Key) ""$($_.Value)"""
+    }
+})
 
 Write-Output ""
 Write-Output "> Running Win11Debloat..."

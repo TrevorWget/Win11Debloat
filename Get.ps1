@@ -2,44 +2,70 @@ param (
     [switch]$Silent,
     [switch]$Verbose,
     [switch]$Sysprep,
-    [switch]$RunAppConfigurator,
-    [switch]$RunDefaults, [switch]$RunWin11Defaults,
+    [string]$LogPath,
+    [string]$User,
+    [switch]$CreateRestorePoint,
+    [switch]$RunAppsListGenerator, [switch]$RunAppConfigurator,
+    [switch]$RunDefaults,
+    [switch]$RunDefaultsLite,
     [switch]$RunSavedSettings,
     [switch]$RemoveApps, 
     [switch]$RemoveAppsCustom,
     [switch]$RemoveGamingApps,
     [switch]$RemoveCommApps,
-    [switch]$RemoveDevApps,
+    [switch]$RemoveHPApps,
     [switch]$RemoveW11Outlook,
     [switch]$ForceRemoveEdge,
     [switch]$DisableDVR,
+    [switch]$DisableGameBarIntegration,
     [switch]$DisableTelemetry,
+    [switch]$DisableFastStartup,
+    [switch]$DisableModernStandbyNetworking,
     [switch]$DisableBingSearches, [switch]$DisableBing,
     [switch]$DisableDesktopSpotlight,
     [switch]$DisableLockscrTips, [switch]$DisableLockscreenTips,
     [switch]$DisableWindowsSuggestions, [switch]$DisableSuggestions,
+    [switch]$DisableEdgeAds,
+    [switch]$DisableSettings365Ads,
+    [switch]$DisableSettingsHome,
     [switch]$ShowHiddenFolders,
     [switch]$ShowKnownFileExt,
     [switch]$HideDupliDrive,
+    [switch]$EnableDarkMode,
+    [switch]$DisableTransparency,
+    [switch]$DisableAnimations,
     [switch]$TaskbarAlignLeft,
+    [switch]$CombineTaskbarAlways, [switch]$CombineTaskbarWhenFull, [switch]$CombineTaskbarNever,
+    [switch]$CombineMMTaskbarAlways, [switch]$CombineMMTaskbarWhenFull, [switch]$CombineMMTaskbarNever,
+    [switch]$MMTaskbarModeAll, [switch]$MMTaskbarModeMainActive, [switch]$MMTaskbarModeActive,
     [switch]$HideSearchTb, [switch]$ShowSearchIconTb, [switch]$ShowSearchLabelTb, [switch]$ShowSearchBoxTb,
     [switch]$HideTaskview,
     [switch]$DisableStartRecommended,
+    [switch]$DisableStartPhoneLink,
     [switch]$DisableCopilot,
     [switch]$DisableRecall,
-    [switch]$DisableWidgets,
-    [switch]$HideWidgets,
-    [switch]$DisableChat,
-    [switch]$HideChat,
+    [switch]$DisableClickToDo,
+    [switch]$DisablePaintAI,
+    [switch]$DisableNotepadAI,
+    [switch]$DisableEdgeAI,
+    [switch]$DisableWidgets, [switch]$HideWidgets,
+    [switch]$DisableChat, [switch]$HideChat,
+    [switch]$EnableEndTask,
+    [switch]$EnableLastActiveClick,
     [switch]$ClearStart,
+    [string]$ReplaceStart,
     [switch]$ClearStartAllUsers,
+    [string]$ReplaceStartAllUsers,
     [switch]$RevertContextMenu,
+    [switch]$DisableMouseAcceleration,
+    [switch]$DisableStickyKeys,
     [switch]$HideHome,
     [switch]$HideGallery,
     [switch]$ExplorerToHome,
     [switch]$ExplorerToThisPC,
     [switch]$ExplorerToDownloads,
     [switch]$ExplorerToOneDrive,
+    [switch]$NoRestartExplorer,
     [switch]$DisableOnedrive, [switch]$HideOnedrive,
     [switch]$Disable3dObjects, [switch]$Hide3dObjects,
     [switch]$DisableMusic, [switch]$HideMusic,
@@ -52,7 +78,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 # Show error if current powershell environment does not have LanguageMode set to FullLanguage 
 if ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
-   Write-Host "Error: Win11Debloat is unable to run on your system. Powershell execution is restricted by security policies" -ForegroundColor Red
+   Write-Host "Error: Win11Debloat is unable to run on your system. PowerShell execution is restricted by security policies" -ForegroundColor Red
    Write-Output ""
    Write-Output "Press enter to exit..."
    Read-Host | Out-Null
@@ -80,13 +106,23 @@ Write-Output ""
 Write-Output "> Unpacking..."
 
 # Unzip archive to Win11Debloat folder
-Expand-Archive "$env:TEMP/win11debloat-temp.zip" "$env:TEMP/Win11Debloat"
+Expand-Archive "$env:TEMP/win11debloat.zip" "$env:TEMP/Win11Debloat"
 
 # Remove archive
-Remove-Item "$env:TEMP/win11debloat-temp.zip"
+Remove-Item "$env:TEMP/win11debloat.zip"
+
+# Move files
+Get-ChildItem -Path "$env:TEMP/Win11Debloat/Raphire-Win11Debloat-*" -Recurse | Move-Item -Destination "$env:TEMP/Win11Debloat"
 
 # Make list of arguments to pass on to the script
-$arguments = $($PSBoundParameters.GetEnumerator() | ForEach-Object {"-$($_.Key)"})
+$arguments = $($PSBoundParameters.GetEnumerator() | ForEach-Object {
+    if ($_.Value -eq $true) {
+        "-$($_.Key)"
+    } 
+    else {
+         "-$($_.Key) ""$($_.Value)"""
+    }
+})
 
 Write-Output ""
 Write-Output "> Running Win11Debloat..."

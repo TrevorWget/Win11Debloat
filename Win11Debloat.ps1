@@ -742,12 +742,11 @@ function ReplaceStartMenu {
         return
     }
 
-    if ([IO.Path]::GetExtension($startMenuTemplate) -ne ".bin" ) {
-        Write-Host "Error: Unable to replace start menu, template file is not a valid .bin file" -ForegroundColor Red
-        return
-    }
-
-    $userName = [regex]::Match($startMenuBinFile, '(?:Users\\)([^\\]+)(?:\\AppData)').Groups[1].Value
+    # Check if bin file exists, return early if it doesn't
+    #if (-not (Test-Path $startMenuBinFile)) {
+    #    Write-Host "Error: Unable to clear start menu for user $userName, start2.bin file could not found" -ForegroundColor Red
+    #    return
+    #}
 
     $backupBinFile = $startMenuBinFile + ".bak"
 

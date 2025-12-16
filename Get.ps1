@@ -112,7 +112,7 @@ Expand-Archive "$env:TEMP/win11debloat.zip" "$env:TEMP/Win11Debloat"
 Remove-Item "$env:TEMP/win11debloat.zip"
 
 # Move files
-Get-ChildItem -Path "$env:TEMP/Win11Debloat/Raphire-Win11Debloat-*" -Recurse | Move-Item -Destination "$env:TEMP/Win11Debloat"
+Get-ChildItem -Path "$env:TEMP/Win11Debloat/Win11Debloat*" -Recurse | Move-Item -Destination "$env:TEMP/Win11Debloat"
 
 # Make list of arguments to pass on to the script
 $arguments = $($PSBoundParameters.GetEnumerator() | ForEach-Object {

@@ -87,7 +87,7 @@ Win11Debloat's default mode allows you to quickly and easily apply the changes t
 
 Alternatively, you can launch the script with the `-RunDefaults` or `-RunDefaultsLite` parameters to immediately run the defaults without going through the menu or the app removal options. Using the `-RunDefaults` parameter will run the script in default mode and remove the default selection of apps. While using the `-RunDefaultsLite` parameter will run the script in default mode without removing any apps. Example:
 ```Powershell
-& ([scriptblock]::Create((irm "https://debloat.raphi.re/"))) -RunDefaults
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/TrevorWget/Win11Debloat/McKee/Get.ps1"))) -RunDefaults
 ```
   
 #### Changes included in the default mode

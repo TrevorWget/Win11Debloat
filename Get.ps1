@@ -92,8 +92,21 @@ Write-Output "------------------------------------------------------------------
 
 Write-Output "> Downloading Win11Debloat..."
 
+# Download latest version of Win11Debloat from GitHub as zip archive
+try {
+    $LatestReleaseUri = (Invoke-RestMethod https://api.github.com/repos/TrevorWget/Win11Debloat/McKee/releases/latest).zipball_url
+    Invoke-RestMethod $LatestReleaseUri -OutFile "$env:TEMP/win11debloat.zip"
+}
+catch {
+    Write-Host "Error: Unable to fetch latest release from GitHub. Please check your internet connection and try again." -ForegroundColor Red
+    Write-Output ""
+    Write-Output "Press enter to exit..."
+    Read-Host | Out-Null
+    Exit
+}
+
 # Download latest version of Win11Debloat from github as zip archive
-Invoke-WebRequest http://github.com/TrevorWget/win11debloat/archive/McKee.zip -OutFile "$env:TEMP/win11debloat-temp.zip"
+# Invoke-WebRequest http://github.com/TrevorWget/win11debloat/archive/McKee.zip -OutFile "$env:TEMP/win11debloat-temp.zip"
 
 # Remove old script folder if it exists, except for CustomAppsList and SavedSettings files
 if (Test-Path "$env:TEMP/Win11Debloat/Win11Debloat-McKee") {
@@ -112,7 +125,7 @@ Expand-Archive "$env:TEMP/win11debloat.zip" "$env:TEMP/Win11Debloat"
 Remove-Item "$env:TEMP/win11debloat.zip"
 
 # Move files
-Get-ChildItem -Path "$env:TEMP/Win11Debloat/Win11Debloat*" -Recurse | Move-Item -Destination "$env:TEMP/Win11Debloat"
+Get-ChildItem -Path "$env:TEMP/Win11Debloat/Win11Debloat-*" -Recurse | Move-Item -Destination "$env:TEMP/Win11Debloat"
 
 # Make list of arguments to pass on to the script
 $arguments = $($PSBoundParameters.GetEnumerator() | ForEach-Object {
@@ -128,7 +141,7 @@ Write-Output ""
 Write-Output "> Running Win11Debloat..."
 
 # Run Win11Debloat script with the provided arguments
-$debloatProcess = Start-Process powershell.exe -PassThru -ArgumentList "-executionpolicy bypass -File $env:TEMP\Win11Debloat\Win11Debloat-McKee\Win11Debloat.ps1 $arguments" -Verb RunAs
+$debloatProcess = Start-Process powershell.exe -PassThru -ArgumentList "-executionpolicy bypass -File $env:TEMP\Win11Debloat\Win11Debloat.ps1 $arguments" -Verb RunAs
 
 # Wait for the process to finish before continuing
 if ($null -ne $debloatProcess) {

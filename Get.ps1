@@ -94,8 +94,7 @@ Write-Output "> Downloading Win11Debloat..."
 
 # Download latest version of Win11Debloat from GitHub as zip archive
 try {
-    $LatestReleaseUri = (Invoke-RestMethod https://api.github.com/repos/TrevorWget/Win11Debloat/releases/tags/McKee).zipball_url
-    Invoke-RestMethod $LatestReleaseUri -OutFile "$env:TEMP/win11debloat.zip"
+    Invoke-WebRequest https://github.com/TrevorWget/Win11Debloat/archive/refs/heads/McKee.zip -OutFile "$env:TEMP/win11debloat.zip"
 }
 catch {
     Write-Host "Error: Unable to fetch latest release from GitHub. Please check your internet connection and try again." -ForegroundColor Red
